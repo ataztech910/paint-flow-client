@@ -22,13 +22,16 @@ export class CanvasComponent implements OnInit {
   private ctx: any;
   constructor(drawSocketService: SocketioService) {
     this.io = new SocketioService();
-    const socketListen = Observable.create((observer) => {
+    const socketListen = this.initSocketDataConnection();
+    socketListen.subscribe( (data: any) => {
+      this.drawMe(this.tmpCtx, this.tmpCanvas, data.res, this.ctx);
+    });
+  }
+  initSocketDataConnection() {
+    return new Observable((observer) => {
       this.io.socket.on('drawing', (message) => {
         observer.next(message);
       });
-    });
-    socketListen.subscribe( data => {
-      this.drawMe(this.tmpCtx, this.tmpCanvas, data.res, this.ctx);
     });
   }
   initCanvas(create = false) {
