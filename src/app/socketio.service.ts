@@ -5,7 +5,7 @@ import { Injectable } from '@angular/core';
   providedIn: 'root'
 })
 export class SocketioService {
-  private url = 'http://localhost:5000';
+  private url = 'https://paint-flow.herokuapp.com';
   socket;
   constructor() {
     this.setupSocketConnection();

@@ -15,13 +15,13 @@ export class CanvasComponent implements OnInit {
   readonly maxHeight = 768;
   // readonly scale = window.devicePixelRatio;
   readonly tmpCanvasName = 'tmp_canvas';
-  lineWidth = 5;
-  io: SocketioService;
+  lineWidth = 8;
+  // io: SocketioService;
   private tmpCanvas: HTMLCanvasElement;
   private tmpCtx: any;
   private ctx: any;
-  constructor(drawSocketService: SocketioService) {
-    this.io = new SocketioService();
+  constructor(private drawSocketService: SocketioService) {
+    this.drawSocketService = new SocketioService();
     const socketListen = this.initSocketDataConnection();
     socketListen.subscribe( (data: any) => {
       this.drawMe(this.tmpCtx, this.tmpCanvas, data.res, this.ctx);
@@ -29,7 +29,7 @@ export class CanvasComponent implements OnInit {
   }
   initSocketDataConnection() {
     return new Observable((observer) => {
-      this.io.socket.on('drawing', (message) => {
+      this.drawSocketService.socket.on('drawing', (message) => {
         observer.next(message);
       });
     });
@@ -100,7 +100,7 @@ export class CanvasComponent implements OnInit {
     });
     stream.subscribe(res => {
       points = res;
-      this.io.socket.emit('drawing', {
+      this.drawSocketService.socket.emit('drawing', {
         res
       });
       this.drawMe(context, canvas, points);
