@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import {fromEvent, merge, Observable, Subject} from 'rxjs';
-import {bufferWhen, map, switchMap, takeUntil, throttle, throttleTime} from 'rxjs/operators';
+import {bufferWhen, map, pairwise, switchMap, takeUntil} from 'rxjs/operators';
 import {SocketioService} from '../socketio.service';
 
 @Component({
@@ -13,7 +13,7 @@ export class CanvasComponent implements OnInit {
   readonly lineCap = 'round';
   readonly maxWidth = 1024;
   readonly maxHeight = 768;
-  readonly scale = window.devicePixelRatio;
+  // readonly scale = window.devicePixelRatio;
   readonly tmpCanvasName = 'tmp_canvas';
   lineWidth = 5;
   io: SocketioService;
@@ -22,16 +22,13 @@ export class CanvasComponent implements OnInit {
   private ctx: any;
   constructor(drawSocketService: SocketioService) {
     this.io = new SocketioService();
-   // this.io.socket.on('drawing', this.onDrawingEvent);
     const socketListen = Observable.create((observer) => {
       this.io.socket.on('drawing', (message) => {
         observer.next(message);
       });
     });
-    let points = [];
     socketListen.subscribe( data => {
-      points.push(data.res);
-      points = this.drawMe(this.tmpCtx, this.tmpCanvas, points, this.ctx);
+      this.drawMe(this.tmpCtx, this.tmpCanvas, data.res, this.ctx);
     });
   }
   initCanvas(create = false) {
@@ -47,15 +44,31 @@ export class CanvasComponent implements OnInit {
     return mouseDown.pipe(
       switchMap(() => {
         return mouseMove.pipe(
-          throttleTime(10),
-          map((e: any) => ({
-            x: e.touches ? e.touches[0].pageX : e.offsetX,
-            y: e.touches ? e.touches[0].pageY : e.offsetY,
-          })),
-          takeUntil(mouseUp)
+          takeUntil(mouseUp),
+          pairwise(),
+          map((e: [MouseEvent, MouseEvent]) => (this.updateCoordinates(e))),
         );
       })
     );
+  }
+  updateCoordinates(res) {
+    const rect = this.tmpCanvas.getBoundingClientRect();
+    const prevPos = {
+      x: res[0].clientX - rect.left,
+      y: res[0].clientY - rect.top
+    };
+    const currentPos = {
+      x: res[1].clientX - rect.left,
+      y: res[1].clientY - rect.top
+    };
+    return {
+      prevPos,
+      currentPos
+    };
+    // {
+    //   x: e.touches ? e.touches[0].pageX : e.offsetX,
+    //     y: e.touches ? e.touches[0].pageY : e.offsetY,
+    // }
   }
   initBuffer(limitOfCount, mouseUp) {
     return  new Subject().pipe(
@@ -83,7 +96,7 @@ export class CanvasComponent implements OnInit {
       points = this.clearCanvas(context, canvas, realContext);
     });
     stream.subscribe(res => {
-      points.push(res);
+      points = res;
       this.io.socket.emit('drawing', {
         res
       });
@@ -95,32 +108,15 @@ export class CanvasComponent implements OnInit {
     });
   }
   drawMe(context, canvas, points, realContext = false) {
-    if (!this.checkPointsArray(context, points.length, points[0])) {
-      this.clearCanvas(context, canvas); // TODO implicit return.
-      context.beginPath();
-      context.moveTo(points[0].x, points[0].y);
-      let i = 0;
-      for (i = 1; i < points.length - 2; i++) {
-        const c = (points[i].x + points[i + 1].x) / 2;
-        const d = (points[i].y + points[i + 1].y) / 2;
-        context.quadraticCurveTo(points[i].x, points[i].y, c, d);
-      }
-      context.quadraticCurveTo(points[i].x, points[i].y, points[i + 1].x, points[i + 1].y);
+    context.beginPath();
+    if (points.prevPos) {
+      context.moveTo(points.prevPos.x, points.prevPos.y);
+      context.lineTo(points.currentPos.x, points.currentPos.y);
       context.stroke();
     }
     if (realContext) {
       return this.clearCanvas(context, canvas, realContext);
     }
-  }
-  checkPointsArray(context, size, point) {
-    if (size < 3) {
-      context.beginPath();
-      context.arc(point.x, point.y, context.lineWidth / 2, 0, Math.PI * 2, !0);
-      context.fill();
-      context.closePath();
-      return true;
-    }
-    return false;
   }
   clearCanvas(context, canvas, realContext = null) {
     if (realContext !== null) { realContext.drawImage(canvas, 0, 0); }
