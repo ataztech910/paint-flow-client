@@ -9,7 +9,7 @@ import {SocketioService} from '../socketio.service';
   styleUrls: ['./canvas.component.scss']
 })
 export class CanvasComponent implements OnInit {
-  readonly limit = 50;
+  readonly limit = 2550;
   readonly lineCap = 'round';
   readonly maxWidth = 1024;
   readonly maxHeight = 768;
@@ -28,12 +28,10 @@ export class CanvasComponent implements OnInit {
         observer.next(message);
       });
     });
-    const points = [];
+    let points = [];
     socketListen.subscribe( data => {
       points.push(data.res);
-      this.drawMe(this.tmpCtx, this.tmpCanvas, points, true);
-      this.ctx.drawImage(this.tmpCanvas, 0, 0);
-      // console.log(data);
+      points = this.drawMe(this.tmpCtx, this.tmpCanvas, points, this.ctx);
     });
   }
   initCanvas(create = false) {
@@ -86,7 +84,6 @@ export class CanvasComponent implements OnInit {
     });
     stream.subscribe(res => {
       points.push(res);
-      // if (emitted) { return; }
       this.io.socket.emit('drawing', {
         res
       });
@@ -97,7 +94,7 @@ export class CanvasComponent implements OnInit {
       dataBuffer.next(res);
     });
   }
-  drawMe(context, canvas, points, emitted = false) {
+  drawMe(context, canvas, points, realContext = false) {
     if (!this.checkPointsArray(context, points.length, points[0])) {
       this.clearCanvas(context, canvas); // TODO implicit return.
       context.beginPath();
@@ -111,8 +108,9 @@ export class CanvasComponent implements OnInit {
       context.quadraticCurveTo(points[i].x, points[i].y, points[i + 1].x, points[i + 1].y);
       context.stroke();
     }
-
-
+    if (realContext) {
+      return this.clearCanvas(context, canvas, realContext);
+    }
   }
   checkPointsArray(context, size, point) {
     if (size < 3) {
