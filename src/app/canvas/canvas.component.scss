@@ -1,0 +1,12 @@
+#sketch {
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  margin-top: 4rem;
+  @media screen and (max-width: 1024px) {
+    margin-top: 0;
+  }
+}
+
+canvas {
+}
