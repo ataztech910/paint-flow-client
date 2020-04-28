@@ -9,10 +9,12 @@ import {SocketioService} from '../socketio.service';
   styleUrls: ['./canvas.component.scss']
 })
 export class CanvasComponent implements OnInit {
+  // TODO put this properties in props
   readonly limit = 2550;
   readonly lineCap = 'round';
   readonly maxWidth = 1024;
   readonly maxHeight = 768;
+  
   // readonly scale = window.devicePixelRatio;
   readonly tmpCanvasName = 'tmp_canvas';
   lineWidth = 8;
@@ -68,6 +70,7 @@ export class CanvasComponent implements OnInit {
       prevPos,
       currentPos
     };
+    // TODO put mobile coordinates back
     // {
     //   x: e.touches ? e.touches[0].pageX : e.offsetX,
     //     y: e.touches ? e.touches[0].pageY : e.offsetY,
@@ -110,6 +113,7 @@ export class CanvasComponent implements OnInit {
       dataBuffer.next(res);
     });
   }
+  // TODO make it pure function
   drawMe(context, canvas, points, realContext = false) {
     context.beginPath();
     if (points.prevPos) {
